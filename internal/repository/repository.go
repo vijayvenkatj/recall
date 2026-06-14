@@ -1,0 +1,53 @@
+package repository
+
+import (
+	"context"
+	"database/sql"
+
+	sqlc "github.com/vijayvenkatj/recall/internal/db/sqlc"
+)
+
+type Store struct {
+	db      *sql.DB
+	queries *sqlc.Queries
+
+	Commands *CommandRepository
+	Sessions *SessionRepository
+	Memories *MemoryRepository
+}
+
+func New(db *sql.DB) *Store {
+	queries := sqlc.New(db)
+	return newStore(db, queries)
+}
+
+func newStore(db *sql.DB, queries *sqlc.Queries) *Store {
+	return &Store{
+		db:       db,
+		queries:  queries,
+		Commands: NewCommandRepository(db, queries),
+		Sessions: NewSessionRepository(queries),
+		Memories: NewMemoryRepository(queries),
+	}
+}
+
+func (s *Store) Queries() *sqlc.Queries {
+	return s.queries
+}
+
+func (s *Store) InTx(ctx context.Context, fn func(*Store) error) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	txStore := newStore(s.db, s.queries.WithTx(tx))
+	if err := fn(txStore); err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return rollbackErr
+		}
+		return err
+	}
+
+	return tx.Commit()
+}
