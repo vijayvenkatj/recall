@@ -1,0 +1,21 @@
+# Environment
+.env
+.env.dev
+.env.prod
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Build artifacts
+bin/
+dist/
+build/
+_gitignore/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
