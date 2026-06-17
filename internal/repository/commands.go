@@ -130,7 +130,6 @@ func createCommandParams(params CreateCommandParams) sqlc.CreateCommandParams {
 		Command:   params.Command,
 		Cwd:       nullString(params.CWD),
 		Repo:      nullString(params.Repo),
-		Branch:    nullString(params.Branch),
 		ExitCode:  nullInt64(params.ExitCode),
 		CreatedAt: params.CreatedAt,
 	}

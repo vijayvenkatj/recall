@@ -2,14 +2,12 @@
 INSERT INTO sessions (
     id,
     repo,
-    branch,
     start_ts,
     end_ts,
     command_count,
     created_at,
     updated_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -42,7 +40,6 @@ LIMIT ? OFFSET ?;
 UPDATE sessions
 SET
     repo = ?,
-    branch = ?,
     start_ts = ?,
     end_ts = ?,
     command_count = ?,

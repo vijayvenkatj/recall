@@ -18,7 +18,6 @@ INSERT INTO commands (
     command,
     cwd,
     repo,
-    branch,
     exit_code,
     created_at
 ) VALUES (
@@ -29,10 +28,9 @@ INSERT INTO commands (
     ?,
     ?,
     ?,
-    ?,
     ?
 )
-RETURNING id, session_id, timestamp, command, cwd, repo, branch, exit_code, created_at
+RETURNING id, session_id, timestamp, command, cwd, repo, exit_code, created_at
 `
 
 type CreateCommandParams struct {
@@ -42,7 +40,6 @@ type CreateCommandParams struct {
 	Command   string
 	Cwd       sql.NullString
 	Repo      sql.NullString
-	Branch    sql.NullString
 	ExitCode  sql.NullInt64
 	CreatedAt int64
 }
@@ -55,7 +52,6 @@ func (q *Queries) CreateCommand(ctx context.Context, arg CreateCommandParams) (C
 		arg.Command,
 		arg.Cwd,
 		arg.Repo,
-		arg.Branch,
 		arg.ExitCode,
 		arg.CreatedAt,
 	)
@@ -67,7 +63,6 @@ func (q *Queries) CreateCommand(ctx context.Context, arg CreateCommandParams) (C
 		&i.Command,
 		&i.Cwd,
 		&i.Repo,
-		&i.Branch,
 		&i.ExitCode,
 		&i.CreatedAt,
 	)
@@ -85,7 +80,7 @@ func (q *Queries) DeleteCommand(ctx context.Context, id string) error {
 }
 
 const getCommand = `-- name: GetCommand :one
-SELECT id, session_id, timestamp, command, cwd, repo, branch, exit_code, created_at
+SELECT id, session_id, timestamp, command, cwd, repo, exit_code, created_at
 FROM commands
 WHERE id = ?
 `
@@ -100,7 +95,6 @@ func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
 		&i.Command,
 		&i.Cwd,
 		&i.Repo,
-		&i.Branch,
 		&i.ExitCode,
 		&i.CreatedAt,
 	)
@@ -108,7 +102,7 @@ func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
 }
 
 const listCommandsByRepo = `-- name: ListCommandsByRepo :many
-SELECT id, session_id, timestamp, command, cwd, repo, branch, exit_code, created_at
+SELECT id, session_id, timestamp, command, cwd, repo, exit_code, created_at
 FROM commands
 WHERE repo = ?
 ORDER BY timestamp DESC, created_at DESC
@@ -137,7 +131,6 @@ func (q *Queries) ListCommandsByRepo(ctx context.Context, arg ListCommandsByRepo
 			&i.Command,
 			&i.Cwd,
 			&i.Repo,
-			&i.Branch,
 			&i.ExitCode,
 			&i.CreatedAt,
 		); err != nil {
@@ -155,7 +148,7 @@ func (q *Queries) ListCommandsByRepo(ctx context.Context, arg ListCommandsByRepo
 }
 
 const listCommandsBySession = `-- name: ListCommandsBySession :many
-SELECT id, session_id, timestamp, command, cwd, repo, branch, exit_code, created_at
+SELECT id, session_id, timestamp, command, cwd, repo, exit_code, created_at
 FROM commands
 WHERE session_id = ?
 ORDER BY timestamp DESC, created_at DESC
@@ -184,7 +177,6 @@ func (q *Queries) ListCommandsBySession(ctx context.Context, arg ListCommandsByS
 			&i.Command,
 			&i.Cwd,
 			&i.Repo,
-			&i.Branch,
 			&i.ExitCode,
 			&i.CreatedAt,
 		); err != nil {
@@ -202,7 +194,7 @@ func (q *Queries) ListCommandsBySession(ctx context.Context, arg ListCommandsByS
 }
 
 const listCommandsInTimeRange = `-- name: ListCommandsInTimeRange :many
-SELECT id, session_id, timestamp, command, cwd, repo, branch, exit_code, created_at
+SELECT id, session_id, timestamp, command, cwd, repo, exit_code, created_at
 FROM commands
 WHERE timestamp >= ?
   AND timestamp <= ?
@@ -238,7 +230,6 @@ func (q *Queries) ListCommandsInTimeRange(ctx context.Context, arg ListCommandsI
 			&i.Command,
 			&i.Cwd,
 			&i.Repo,
-			&i.Branch,
 			&i.ExitCode,
 			&i.CreatedAt,
 		); err != nil {
@@ -256,7 +247,7 @@ func (q *Queries) ListCommandsInTimeRange(ctx context.Context, arg ListCommandsI
 }
 
 const listRecentCommands = `-- name: ListRecentCommands :many
-SELECT id, session_id, timestamp, command, cwd, repo, branch, exit_code, created_at
+SELECT id, session_id, timestamp, command, cwd, repo, exit_code, created_at
 FROM commands
 ORDER BY timestamp DESC, created_at DESC
 LIMIT ? OFFSET ?
@@ -283,7 +274,6 @@ func (q *Queries) ListRecentCommands(ctx context.Context, arg ListRecentCommands
 			&i.Command,
 			&i.Cwd,
 			&i.Repo,
-			&i.Branch,
 			&i.ExitCode,
 			&i.CreatedAt,
 		); err != nil {

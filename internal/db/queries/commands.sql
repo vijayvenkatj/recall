@@ -6,11 +6,9 @@ INSERT INTO commands (
     command,
     cwd,
     repo,
-    branch,
     exit_code,
     created_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,

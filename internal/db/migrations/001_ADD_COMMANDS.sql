@@ -8,7 +8,6 @@ CREATE TABLE commands (
 
     cwd TEXT,
     repo TEXT,
-    branch TEXT,
 
     exit_code INTEGER,
     created_at INTEGER NOT NULL

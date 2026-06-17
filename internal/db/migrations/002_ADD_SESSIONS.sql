@@ -3,7 +3,6 @@ CREATE TABLE sessions (
     id TEXT PRIMARY KEY,
 
     repo TEXT NOT NULL,
-    branch TEXT,
 
     start_ts INTEGER NOT NULL,
     end_ts INTEGER NOT NULL,

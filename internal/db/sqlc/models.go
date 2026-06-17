@@ -15,7 +15,6 @@ type Command struct {
 	Command   string
 	Cwd       sql.NullString
 	Repo      sql.NullString
-	Branch    sql.NullString
 	ExitCode  sql.NullInt64
 	CreatedAt int64
 }
@@ -31,7 +30,6 @@ type Memory struct {
 type Session struct {
 	ID           string
 	Repo         string
-	Branch       sql.NullString
 	StartTs      int64
 	EndTs        int64
 	CommandCount int64

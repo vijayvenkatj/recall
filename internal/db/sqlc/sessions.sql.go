@@ -7,14 +7,12 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createSession = `-- name: CreateSession :one
 INSERT INTO sessions (
     id,
     repo,
-    branch,
     start_ts,
     end_ts,
     command_count,
@@ -27,16 +25,14 @@ INSERT INTO sessions (
     ?,
     ?,
     ?,
-    ?,
     ?
 )
-RETURNING id, repo, branch, start_ts, end_ts, command_count, created_at, updated_at
+RETURNING id, repo, start_ts, end_ts, command_count, created_at, updated_at
 `
 
 type CreateSessionParams struct {
 	ID           string
 	Repo         string
-	Branch       sql.NullString
 	StartTs      int64
 	EndTs        int64
 	CommandCount int64
@@ -48,7 +44,6 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 	row := q.db.QueryRowContext(ctx, createSession,
 		arg.ID,
 		arg.Repo,
-		arg.Branch,
 		arg.StartTs,
 		arg.EndTs,
 		arg.CommandCount,
@@ -59,7 +54,6 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 	err := row.Scan(
 		&i.ID,
 		&i.Repo,
-		&i.Branch,
 		&i.StartTs,
 		&i.EndTs,
 		&i.CommandCount,
@@ -80,7 +74,7 @@ func (q *Queries) DeleteSession(ctx context.Context, id string) error {
 }
 
 const getSession = `-- name: GetSession :one
-SELECT id, repo, branch, start_ts, end_ts, command_count, created_at, updated_at
+SELECT id, repo, start_ts, end_ts, command_count, created_at, updated_at
 FROM sessions
 WHERE id = ?
 `
@@ -91,7 +85,6 @@ func (q *Queries) GetSession(ctx context.Context, id string) (Session, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.Repo,
-		&i.Branch,
 		&i.StartTs,
 		&i.EndTs,
 		&i.CommandCount,
@@ -102,7 +95,7 @@ func (q *Queries) GetSession(ctx context.Context, id string) (Session, error) {
 }
 
 const listRecentSessions = `-- name: ListRecentSessions :many
-SELECT id, repo, branch, start_ts, end_ts, command_count, created_at, updated_at
+SELECT id, repo, start_ts, end_ts, command_count, created_at, updated_at
 FROM sessions
 ORDER BY end_ts DESC, updated_at DESC
 LIMIT ? OFFSET ?
@@ -125,7 +118,6 @@ func (q *Queries) ListRecentSessions(ctx context.Context, arg ListRecentSessions
 		if err := rows.Scan(
 			&i.ID,
 			&i.Repo,
-			&i.Branch,
 			&i.StartTs,
 			&i.EndTs,
 			&i.CommandCount,
@@ -146,7 +138,7 @@ func (q *Queries) ListRecentSessions(ctx context.Context, arg ListRecentSessions
 }
 
 const listSessionsByRepo = `-- name: ListSessionsByRepo :many
-SELECT id, repo, branch, start_ts, end_ts, command_count, created_at, updated_at
+SELECT id, repo, start_ts, end_ts, command_count, created_at, updated_at
 FROM sessions
 WHERE repo = ?
 ORDER BY end_ts DESC, updated_at DESC
@@ -171,7 +163,6 @@ func (q *Queries) ListSessionsByRepo(ctx context.Context, arg ListSessionsByRepo
 		if err := rows.Scan(
 			&i.ID,
 			&i.Repo,
-			&i.Branch,
 			&i.StartTs,
 			&i.EndTs,
 			&i.CommandCount,
@@ -198,7 +189,7 @@ SET
     command_count = command_count + 1,
     updated_at = ?
 WHERE id = ?
-RETURNING id, repo, branch, start_ts, end_ts, command_count, created_at, updated_at
+RETURNING id, repo, start_ts, end_ts, command_count, created_at, updated_at
 `
 
 type TouchSessionForCommandParams struct {
@@ -213,7 +204,6 @@ func (q *Queries) TouchSessionForCommand(ctx context.Context, arg TouchSessionFo
 	err := row.Scan(
 		&i.ID,
 		&i.Repo,
-		&i.Branch,
 		&i.StartTs,
 		&i.EndTs,
 		&i.CommandCount,
@@ -227,18 +217,16 @@ const updateSession = `-- name: UpdateSession :one
 UPDATE sessions
 SET
     repo = ?,
-    branch = ?,
     start_ts = ?,
     end_ts = ?,
     command_count = ?,
     updated_at = ?
 WHERE id = ?
-RETURNING id, repo, branch, start_ts, end_ts, command_count, created_at, updated_at
+RETURNING id, repo, start_ts, end_ts, command_count, created_at, updated_at
 `
 
 type UpdateSessionParams struct {
 	Repo         string
-	Branch       sql.NullString
 	StartTs      int64
 	EndTs        int64
 	CommandCount int64
@@ -249,7 +237,6 @@ type UpdateSessionParams struct {
 func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (Session, error) {
 	row := q.db.QueryRowContext(ctx, updateSession,
 		arg.Repo,
-		arg.Branch,
 		arg.StartTs,
 		arg.EndTs,
 		arg.CommandCount,
@@ -260,7 +247,6 @@ func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (S
 	err := row.Scan(
 		&i.ID,
 		&i.Repo,
-		&i.Branch,
 		&i.StartTs,
 		&i.EndTs,
 		&i.CommandCount,

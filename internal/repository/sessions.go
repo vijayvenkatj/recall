@@ -15,7 +15,6 @@ type SessionRepository struct {
 type CreateSessionParams struct {
 	ID           string
 	Repo         string
-	Branch       *string
 	StartTs      int64
 	EndTs        int64
 	CommandCount int64
@@ -26,7 +25,6 @@ type CreateSessionParams struct {
 type UpdateSessionParams struct {
 	ID           string
 	Repo         string
-	Branch       *string
 	StartTs      int64
 	EndTs        int64
 	CommandCount int64
@@ -41,7 +39,6 @@ func (r *SessionRepository) Create(ctx context.Context, params CreateSessionPara
 	return r.queries.CreateSession(ctx, sqlc.CreateSessionParams{
 		ID:           params.ID,
 		Repo:         params.Repo,
-		Branch:       nullString(params.Branch),
 		StartTs:      params.StartTs,
 		EndTs:        params.EndTs,
 		CommandCount: params.CommandCount,
@@ -74,7 +71,6 @@ func (r *SessionRepository) ListRecent(ctx context.Context, page Page) ([]Sessio
 func (r *SessionRepository) Update(ctx context.Context, params UpdateSessionParams) (Session, error) {
 	return r.queries.UpdateSession(ctx, sqlc.UpdateSessionParams{
 		Repo:         params.Repo,
-		Branch:       nullString(params.Branch),
 		StartTs:      params.StartTs,
 		EndTs:        params.EndTs,
 		CommandCount: params.CommandCount,
