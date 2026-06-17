@@ -186,7 +186,7 @@ const touchSessionForCommand = `-- name: TouchSessionForCommand :one
 UPDATE sessions
 SET
     end_ts = ?,
-    command_count = command_count + 1,
+    command_count = command_count,
     updated_at = ?
 WHERE id = ?
 RETURNING id, repo, start_ts, end_ts, command_count, created_at, updated_at
