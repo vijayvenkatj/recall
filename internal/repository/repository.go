@@ -14,6 +14,7 @@ type Store struct {
 	Commands *CommandRepository
 	Sessions *SessionRepository
 	Memories *MemoryRepository
+	Metadata *MetadataRepository
 }
 
 func New(db *sql.DB) *Store {
@@ -28,6 +29,7 @@ func newStore(db *sql.DB, queries *sqlc.Queries) *Store {
 		Commands: NewCommandRepository(db, queries),
 		Sessions: NewSessionRepository(queries),
 		Memories: NewMemoryRepository(queries),
+		Metadata: NewMetadataRepository(queries),
 	}
 }
 

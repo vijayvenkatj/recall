@@ -27,6 +27,11 @@ type Memory struct {
 	CreatedAt int64
 }
 
+type Metadata struct {
+	Key   string
+	Value string
+}
+
 type Session struct {
 	ID           string
 	Repo         string
