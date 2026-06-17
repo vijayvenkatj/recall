@@ -8,7 +8,7 @@ import (
 )
 
 type Store struct {
-	db      *sql.DB
+	DB      *sql.DB
 	queries *sqlc.Queries
 
 	Commands *CommandRepository
@@ -24,7 +24,7 @@ func New(db *sql.DB) *Store {
 
 func newStore(db *sql.DB, queries *sqlc.Queries) *Store {
 	return &Store{
-		db:       db,
+		DB:       db,
 		queries:  queries,
 		Commands: NewCommandRepository(db, queries),
 		Sessions: NewSessionRepository(queries),
@@ -38,12 +38,12 @@ func (s *Store) Queries() *sqlc.Queries {
 }
 
 func (s *Store) InTx(ctx context.Context, fn func(*Store) error) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	txStore := newStore(s.db, s.queries.WithTx(tx))
+	txStore := newStore(s.DB, s.queries.WithTx(tx))
 	if err := fn(txStore); err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return rollbackErr

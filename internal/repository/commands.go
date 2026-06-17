@@ -21,7 +21,6 @@ type CreateCommandParams struct {
 	Command   string
 	CWD       *string
 	Repo      *string
-	Branch    *string
 	ExitCode  *int64
 	CreatedAt int64
 }
