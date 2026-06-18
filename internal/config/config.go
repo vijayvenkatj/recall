@@ -19,7 +19,14 @@ func LoadConfig() (Config, error) {
 	_ = godotenv.Load()
 
 	home, _ := os.UserHomeDir()
-	defaultLogPath := filepath.Join(home, ".local", "share", "recall", "events.log")
+	dataDir := filepath.Join(home, ".local", "share", "recall")
+	defaultLogPath := filepath.Join(dataDir, "events.log")
+	defaultDBString := filepath.Join(dataDir, "recall.db")
+
+	// Ensure data directory exists
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		return Config{}, err
+	}
 
 	viper.AutomaticEnv()
 
@@ -34,6 +41,15 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+
+	if config.DBDriver == "" {
+		config.DBDriver = "sqlite"
+	}
+
+	if config.DBString == "" {
+		config.DBString = defaultDBString
+	}
+
 	if config.LogPath == "" {
 		config.LogPath = defaultLogPath
 	}
