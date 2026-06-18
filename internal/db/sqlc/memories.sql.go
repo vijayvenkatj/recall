@@ -143,6 +143,52 @@ func (q *Queries) ListMemories(ctx context.Context, arg ListMemoriesParams) ([]M
 	return items, nil
 }
 
+const searchMemories = `-- name: SearchMemories :many
+SELECT id, session_id, title, summary, created_at
+FROM memories
+WHERE rowid IN (
+    SELECT rowid
+    FROM memories_fts
+    WHERE memories_fts.title MATCH ? OR memories_fts.summary MATCH ?
+)
+LIMIT ?
+`
+
+type SearchMemoriesParams struct {
+	Title   string
+	Summary string
+	Limit   int64
+}
+
+func (q *Queries) SearchMemories(ctx context.Context, arg SearchMemoriesParams) ([]Memory, error) {
+	rows, err := q.db.QueryContext(ctx, searchMemories, arg.Title, arg.Summary, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Memory
+	for rows.Next() {
+		var i Memory
+		if err := rows.Scan(
+			&i.ID,
+			&i.SessionID,
+			&i.Title,
+			&i.Summary,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateMemory = `-- name: UpdateMemory :one
 UPDATE memories
 SET

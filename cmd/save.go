@@ -15,7 +15,12 @@ var saveCmd = &cobra.Command{
 	Use:   "save",
 	Short: "Create a memory from a recent session",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return application.SaveMemory(context.Background(), numSessions, numCommands)
+		ctx := context.Background()
+		// Automatically sync before saving to ensure latest history is present
+		if err := application.Sync(ctx); err != nil {
+			return err
+		}
+		return application.SaveMemory(ctx, numSessions, numCommands)
 	},
 }
 

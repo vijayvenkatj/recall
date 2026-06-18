@@ -19,6 +19,11 @@ type Command struct {
 	CreatedAt int64
 }
 
+type MemoriesFt struct {
+	Title   string
+	Summary string
+}
+
 type Memory struct {
 	ID        string
 	SessionID string

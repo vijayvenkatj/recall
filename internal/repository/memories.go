@@ -64,6 +64,14 @@ func (r *MemoryRepository) Update(ctx context.Context, params UpdateMemoryParams
 	})
 }
 
+func (r *MemoryRepository) Search(ctx context.Context, query string, limit int32) ([]Memory, error) {
+	return r.queries.SearchMemories(ctx, sqlc.SearchMemoriesParams{
+		Title:   query,
+		Summary: query,
+		Limit:   int64(limit),
+	})
+}
+
 func (r *MemoryRepository) Delete(ctx context.Context, id string) error {
 	return r.queries.DeleteMemory(ctx, id)
 }

@@ -38,6 +38,16 @@ SET
 WHERE id = ?
 RETURNING *;
 
+-- name: SearchMemories :many
+SELECT *
+FROM memories
+WHERE rowid IN (
+    SELECT rowid
+    FROM memories_fts
+    WHERE memories_fts.title MATCH ? OR memories_fts.summary MATCH ?
+)
+LIMIT ?;
+
 -- name: DeleteMemory :exec
 DELETE FROM memories
 WHERE id = ?;
