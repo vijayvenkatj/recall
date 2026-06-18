@@ -51,7 +51,7 @@ RETURNING *;
 UPDATE sessions
 SET
     end_ts = ?,
-    command_count = command_count,
+    command_count = command_count + 1,
     updated_at = ?
 WHERE id = ?
 RETURNING *;

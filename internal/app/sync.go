@@ -128,7 +128,7 @@ func parseEvent(logline string) (Event, error) {
 		return event, err
 	}
 
-	event.Timestamp = timestamp
+	event.Timestamp = timestamp * 1000
 	event.ExitCode = exitCode
 	event.CWD = info[2]
 	event.Repo = info[3]
@@ -165,7 +165,7 @@ func sessionForEvent(ctx context.Context, event Event, sessionRepo *repository.S
 	last := time.UnixMilli(latestSession.EndTs)
 	current := time.UnixMilli(event.Timestamp)
 
-	if current.Sub(last) > 30*time.Minute {
+	if current.Sub(last) > 30*time.Minute || latestSession.Repo != event.Repo {
 		session, err = sessionRepo.Create(ctx, repository.CreateSessionParams{
 			ID:           uuid.NewString(),
 			Repo:         event.Repo,
@@ -181,12 +181,7 @@ func sessionForEvent(ctx context.Context, event Event, sessionRepo *repository.S
 		return session, nil
 	}
 
-	session, err = sessionRepo.Update(ctx, repository.UpdateSessionParams{
-		ID:           latestSession.ID,
-		CommandCount: latestSession.CommandCount + 1,
-		EndTs:        current.UnixMilli(),
-		UpdatedAt:    time.Now().UnixMilli(),
-	})
+	session, err = sessionRepo.TouchForCommand(ctx, latestSession.ID, event.Timestamp, time.Now().UnixMilli())
 	if err != nil {
 		return session, err
 	}

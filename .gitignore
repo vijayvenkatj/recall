@@ -13,6 +13,7 @@ bin/
 dist/
 build/
 _gitignore/
+recall
 
 # macOS
 .DS_Store
