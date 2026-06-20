@@ -72,10 +72,25 @@ func (r *MemoryRepository) Search(ctx context.Context, query string, limit int32
 		return nil, nil
 	}
 
-	return r.queries.SearchMemories(ctx, sqlc.SearchMemoriesParams{
+	rows, err := r.queries.SearchMemories(ctx, sqlc.SearchMemoriesParams{
 		Query:    formattedQuery,
 		LimitVal: int64(limit),
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	memories := make([]Memory, len(rows))
+	for i, row := range rows {
+		memories[i] = Memory{
+			ID:        row.ID,
+			SessionID: row.SessionID,
+			Title:     row.Title,
+			Summary:   row.Summary,
+			CreatedAt: row.CreatedAt,
+		}
+	}
+	return memories, nil
 }
 
 func (r *MemoryRepository) Delete(ctx context.Context, id string) error {

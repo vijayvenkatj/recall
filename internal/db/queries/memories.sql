@@ -39,13 +39,21 @@ WHERE id = ?
 RETURNING *;
 
 -- name: SearchMemories :many
-SELECT memories.*
+SELECT memories.*, bm25(memories_fts) AS score
 FROM memories
 JOIN memories_fts ON memories.rowid = memories_fts.rowid
 WHERE memories_fts.title MATCH sqlc.arg(query)
-   OR memories_fts.summary MATCH sqlc.arg(query)
-   OR memories_fts.commands MATCH sqlc.arg(query)
-ORDER BY bm25(memories_fts)
+UNION
+SELECT memories.*, bm25(memories_fts) AS score
+FROM memories
+JOIN memories_fts ON memories.rowid = memories_fts.rowid
+WHERE memories_fts.summary MATCH sqlc.arg(query)
+UNION
+SELECT memories.*, bm25(memories_fts) AS score
+FROM memories
+JOIN memories_fts ON memories.rowid = memories_fts.rowid
+WHERE memories_fts.commands MATCH sqlc.arg(query)
+ORDER BY score
 LIMIT sqlc.arg(limit_val);
 
 -- name: DeleteMemory :exec

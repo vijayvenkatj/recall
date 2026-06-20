@@ -144,36 +144,54 @@ func (q *Queries) ListMemories(ctx context.Context, arg ListMemoriesParams) ([]M
 }
 
 const searchMemories = `-- name: SearchMemories :many
-SELECT memories.id, memories.session_id, memories.title, memories.summary, memories.created_at
+SELECT memories.id, memories.session_id, memories.title, memories.summary, memories.created_at, bm25(memories_fts) AS score
 FROM memories
 JOIN memories_fts ON memories.rowid = memories_fts.rowid
-WHERE memories_fts.title MATCH ?1
-   OR memories_fts.summary MATCH ?1
-   OR memories_fts.commands MATCH ?1
-ORDER BY bm25(memories_fts)
-LIMIT ?2
+WHERE memories_fts.title MATCH ?2
+UNION
+SELECT memories.id, memories.session_id, memories.title, memories.summary, memories.created_at, bm25(memories_fts) AS score
+FROM memories
+JOIN memories_fts ON memories.rowid = memories_fts.rowid
+WHERE memories_fts.summary MATCH ?2
+UNION
+SELECT memories.id, memories.session_id, memories.title, memories.summary, memories.created_at, bm25(memories_fts) AS score
+FROM memories
+JOIN memories_fts ON memories.rowid = memories_fts.rowid
+WHERE memories_fts.commands MATCH ?2
+ORDER BY score
+LIMIT ?1
 `
 
 type SearchMemoriesParams struct {
-	Query    string
 	LimitVal int64
+	Query    string
 }
 
-func (q *Queries) SearchMemories(ctx context.Context, arg SearchMemoriesParams) ([]Memory, error) {
-	rows, err := q.db.QueryContext(ctx, searchMemories, arg.Query, arg.LimitVal)
+type SearchMemoriesRow struct {
+	ID        string
+	SessionID string
+	Title     sql.NullString
+	Summary   string
+	CreatedAt int64
+	Score     float64
+}
+
+func (q *Queries) SearchMemories(ctx context.Context, arg SearchMemoriesParams) ([]SearchMemoriesRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchMemories, arg.LimitVal, arg.Query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Memory
+	var items []SearchMemoriesRow
 	for rows.Next() {
-		var i Memory
+		var i SearchMemoriesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.SessionID,
 			&i.Title,
 			&i.Summary,
 			&i.CreatedAt,
+			&i.Score,
 		); err != nil {
 			return nil, err
 		}
