@@ -11,25 +11,29 @@ preexec() {
 }
 
 precmd() {
+    local exit_code=$?
     # Ignore if no command was executed
     [[ -z "$RECALL_CMD" ]] && return
 
-    local exit_code=$?
     local repo=""
-
     if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         repo=$(basename "$(git rev-parse --show-toplevel)" 2>/dev/null)
     fi
 
-    mkdir -p "$HOME/.local/share/recall"
+    local log_path="${EVENT_LOG_PATH:-$HOME/.local/share/recall/events.log}"
+    mkdir -p "$(dirname "$log_path")"
+
+    # Escape tabs and newlines in the command
+    local cmd_escaped="${RECALL_CMD//[$'\t']/    }"
+    cmd_escaped="${cmd_escaped//[$'\n']/\\n}"
 
     printf '%s\t%s\t%s\t%s\t%s\n' \
         "$RECALL_TS" \
         "$exit_code" \
         "$RECALL_CWD" \
         "$repo" \
-        "$RECALL_CMD" \
-        >> "$HOME/.local/share/recall/events.log"
+        "$cmd_escaped" \
+        >> "$log_path"
 
     RECALL_CMD=""
 }

@@ -54,9 +54,26 @@ func (m saveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
-		case "q", "esc":
+		case "q":
 			if m.step == stepSelectSession || m.step == stepReviewCommands || m.step == stepDone {
 				return m, tea.Quit
+			}
+		case "esc":
+			if m.step == stepSelectSession || m.step == stepDone {
+				return m, tea.Quit
+			}
+			if m.step == stepReviewCommands {
+				m.step = stepSelectSession
+				return m, nil
+			}
+			if m.step == stepInputProblem {
+				m.step = stepReviewCommands
+				return m, nil
+			}
+			if m.step == stepInputFix {
+				m.step = stepInputProblem
+				m.problemInput.Focus()
+				return m, nil
 			}
 		}
 
@@ -181,19 +198,19 @@ func (m saveModel) View() string {
 			date := time.UnixMilli(sess.StartTs).Format("2006-01-02 15:04:05")
 			s.WriteString(fmt.Sprintf("%s %s %s (%d cmds)\n", style.Render(cursor), style.Render(sess.Repo), SubtleStyle.Render(date), sess.CommandCount))
 		}
-		s.WriteString(SubtleStyle.Render("\n ↑/↓: navigate • enter: select • q: quit"))
+		s.WriteString(SubtleStyle.Render("\n ↑/↓: navigate • enter: select • esc/q: quit"))
 	case stepReviewCommands:
 		s.WriteString(fmt.Sprintf("Reviewing commands for %s (↑/↓ to scroll):\n\n", m.sessions[m.selectedIdx].Repo))
 		s.WriteString(m.viewport.View())
-		s.WriteString(SubtleStyle.Render("\n\n enter: continue • q: quit"))
+		s.WriteString(SubtleStyle.Render("\n\n enter: continue • esc: back • q: quit"))
 	case stepInputProblem:
 		s.WriteString("What was the problem about?\n\n")
 		s.WriteString(m.problemInput.View())
-		s.WriteString(SubtleStyle.Render("\n\n enter: next"))
+		s.WriteString(SubtleStyle.Render("\n\n enter: next • esc: back"))
 	case stepInputFix:
 		s.WriteString("What did you do to fix this?\n\n")
 		s.WriteString(m.fixInput.View())
-		s.WriteString(SubtleStyle.Render("\n\n enter: save memory"))
+		s.WriteString(SubtleStyle.Render("\n\n enter: save memory • esc: back"))
 	case stepSaving:
 		s.WriteString("Saving memory...")
 	case stepDone:

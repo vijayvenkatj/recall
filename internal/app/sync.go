@@ -31,7 +31,7 @@ func (app *App) Sync(ctx context.Context) error {
 		return err
 	}
 
-	newOffset, err := app.readLogs(ctx, offset)
+	newOffset, count, err := app.readLogs(ctx, offset)
 	if err != nil {
 		return err
 	}
@@ -41,22 +41,30 @@ func (app *App) Sync(ctx context.Context) error {
 		return err
 	}
 
+	if count > 0 {
+		fmt.Printf("Synced %d new command(s) into database.\n", count)
+	}
+
 	return nil
 }
 
-func (app *App) readLogs(ctx context.Context, offset int64) (int64, error) {
+func (app *App) readLogs(ctx context.Context, offset int64) (int64, int, error) {
 	file, err := os.Open(app.Config.LogPath)
 	if err != nil {
-		return 0, err
+		if os.IsNotExist(err) {
+			return 0, 0, nil
+		}
+		return 0, 0, err
 	}
 	defer file.Close()
 
 	if _, err := file.Seek(offset, io.SeekStart); err != nil {
-		return offset, err
+		return offset, 0, err
 	}
 
 	reader := bufio.NewReader(file)
 	currentOffset := offset
+	count := 0
 
 	for {
 		line, err := reader.ReadString('\n')
@@ -68,7 +76,7 @@ func (app *App) readLogs(ctx context.Context, offset int64) (int64, error) {
 			break
 		}
 		if err != nil {
-			return offset, err
+			return offset, 0, err
 		}
 
 		event, err := parseEvent(line)
@@ -77,11 +85,12 @@ func (app *App) readLogs(ctx context.Context, offset int64) (int64, error) {
 		}
 
 		if err := app.processEvent(ctx, event); err != nil {
-			return offset, err
+			return offset, 0, err
 		}
+		count++
 	}
 
-	return currentOffset, nil
+	return currentOffset, count, nil
 }
 
 func (app *App) processEvent(ctx context.Context, event Event) error {
@@ -132,7 +141,7 @@ func parseEvent(logline string) (Event, error) {
 	event.ExitCode = exitCode
 	event.CWD = info[2]
 	event.Repo = info[3]
-	event.Command = strings.TrimSpace(info[4])
+	event.Command = strings.ReplaceAll(strings.TrimSpace(info[4]), "\\n", "\n")
 
 	return event, nil
 }
@@ -151,7 +160,7 @@ func sessionForEvent(ctx context.Context, event Event, sessionRepo *repository.S
 			Repo:         event.Repo,
 			StartTs:      event.Timestamp,
 			EndTs:        event.Timestamp,
-			CommandCount: 1,
+			CommandCount: 0, // Starts at 0; touched in Append to become 1
 			CreatedAt:    time.Now().UnixMilli(),
 			UpdatedAt:    time.Now().UnixMilli(),
 		})
@@ -171,7 +180,7 @@ func sessionForEvent(ctx context.Context, event Event, sessionRepo *repository.S
 			Repo:         event.Repo,
 			StartTs:      event.Timestamp,
 			EndTs:        event.Timestamp,
-			CommandCount: 1,
+			CommandCount: 0, // Starts at 0; touched in Append to become 1
 			CreatedAt:    time.Now().UnixMilli(),
 			UpdatedAt:    time.Now().UnixMilli(),
 		})
@@ -181,12 +190,8 @@ func sessionForEvent(ctx context.Context, event Event, sessionRepo *repository.S
 		return session, nil
 	}
 
-	session, err = sessionRepo.TouchForCommand(ctx, latestSession.ID, event.Timestamp, time.Now().UnixMilli())
-	if err != nil {
-		return session, err
-	}
-
-	return session, nil
+	// Just return latestSession; it will be touched by Append inside the transaction
+	return latestSession, nil
 }
 
 func (app *App) getLastOffset(ctx context.Context) (int64, error) {

@@ -87,8 +87,12 @@ func (m searchModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if m.state == stateList {
 			switch msg.String() {
-			case "ctrl+c", "q":
+			case "ctrl+c":
 				return m, tea.Quit
+			case "q":
+				if m.list.FilterState() != list.Filtering {
+					return m, tea.Quit
+				}
 			case "enter":
 				selected := m.list.SelectedItem().(item)
 				m.state = stateDetail
