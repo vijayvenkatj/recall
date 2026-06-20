@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pressly/goose/v3"
 	"github.com/vijayvenkatj/recall/internal/assets"
@@ -36,17 +37,48 @@ func (app *App) Install() error {
 
 	// 3. Install Shell Hooks
 	fmt.Println("Installing shell hooks...")
-	hookPath := filepath.Join(configDir, "hooks.zsh")
-	if err := os.WriteFile(hookPath, []byte(assets.HooksZsh), 0644); err != nil {
+	shellPath := os.Getenv("SHELL")
+	shellType := "zsh"
+	if strings.Contains(shellPath, "fish") {
+		shellType = "fish"
+	} else if strings.Contains(shellPath, "bash") {
+		shellType = "bash"
+	}
+
+	var hookContent string
+	var hookFile string
+	var rcFile string
+	var sourceCmd string
+
+	switch shellType {
+	case "fish":
+		hookContent = assets.HooksFish
+		hookFile = "hooks.fish"
+		rcFile = "~/.config/fish/config.fish"
+		sourceCmd = fmt.Sprintf("source %s", filepath.Join(configDir, "hooks.fish"))
+	case "bash":
+		hookContent = assets.HooksBash
+		hookFile = "hooks.bash"
+		rcFile = "~/.bashrc"
+		sourceCmd = fmt.Sprintf("source %s", filepath.Join(configDir, "hooks.bash"))
+	default:
+		hookContent = assets.HooksZsh
+		hookFile = "hooks.zsh"
+		rcFile = "~/.zshrc"
+		sourceCmd = fmt.Sprintf("source %s", filepath.Join(configDir, "hooks.zsh"))
+	}
+
+	hookPath := filepath.Join(configDir, hookFile)
+	if err := os.WriteFile(hookPath, []byte(hookContent), 0644); err != nil {
 		return fmt.Errorf("failed to write hook file: %w", err)
 	}
 
 	fmt.Println("\n" + TitleStyle.Render(" INSTALLATION SUCCESSFUL "))
 	fmt.Printf("\n1. Database and logs are at: %s\n", dataDir)
 	fmt.Printf("2. Shell hooks installed to: %s\n", hookPath)
-	fmt.Println("\n" + SelectedStyle.Render("Final Step:") + " Add the following line to your " + SelectedStyle.Render("~/.zshrc") + ":")
-	fmt.Printf("\n   source %s\n\n", hookPath)
-	fmt.Println("Then restart your terminal or run: source ~/.zshrc")
+	fmt.Println("\n" + SelectedStyle.Render("Final Step:") + " Add the following line to your " + SelectedStyle.Render(rcFile) + ":")
+	fmt.Printf("\n   %s\n\n", sourceCmd)
+	fmt.Printf("Then restart your terminal or run: source %s\n", rcFile)
 
 	return nil
 }
