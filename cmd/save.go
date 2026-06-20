@@ -20,12 +20,18 @@ var saveCmd = &cobra.Command{
 		if err := application.Sync(ctx); err != nil {
 			return err
 		}
-		return application.SaveMemory(ctx, numSessions, numCommands)
+
+		limit := numSessions
+		if !cmd.Flags().Changed("sessions") && application.Config.SaveSessionsLimit > 0 {
+			limit = application.Config.SaveSessionsLimit
+		}
+
+		return application.SaveMemory(ctx, limit, numCommands)
 	},
 }
 
 func init() {
-	saveCmd.Flags().IntVarP(&numSessions, "sessions", "s", 3, "Number of recent sessions to show")
+	saveCmd.Flags().IntVarP(&numSessions, "sessions", "s", 10, "Number of recent sessions to show")
 	saveCmd.Flags().IntVarP(&numCommands, "commands", "c", 10, "Number of recent commands to show per session")
 	rootCmd.AddCommand(saveCmd)
 }

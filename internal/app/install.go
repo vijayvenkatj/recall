@@ -44,6 +44,9 @@ db_string: "%s/recall.db"
 event_log_path: "%s/events.log"
 log_level: "info"
 
+# UI / Save wizard options
+save_sessions_limit: 10
+
 # LLM Suggestions configuration (optional)
 # Set provider to "gemini" or "ollama" to enable suggestions
 llm_provider: ""

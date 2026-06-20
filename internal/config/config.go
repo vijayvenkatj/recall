@@ -10,14 +10,15 @@ import (
 )
 
 type Config struct {
-	DBDriver    string `mapstructure:"db_driver"`
-	DBString    string `mapstructure:"db_string"`
-	LogLevel    string `mapstructure:"log_level"`
-	LogPath     string `mapstructure:"event_log_path"`
-	LLMProvider string `mapstructure:"llm_provider"`
-	LLMAPIKey   string `mapstructure:"llm_api_key"`
-	LLMModel    string `mapstructure:"llm_model"`
-	LLMEndpoint string `mapstructure:"llm_endpoint"`
+	DBDriver          string `mapstructure:"db_driver"`
+	DBString          string `mapstructure:"db_string"`
+	LogLevel          string `mapstructure:"log_level"`
+	LogPath           string `mapstructure:"event_log_path"`
+	LLMProvider       string `mapstructure:"llm_provider"`
+	LLMAPIKey         string `mapstructure:"llm_api_key"`
+	LLMModel          string `mapstructure:"llm_model"`
+	LLMEndpoint       string `mapstructure:"llm_endpoint"`
+	SaveSessionsLimit int    `mapstructure:"save_sessions_limit"`
 }
 
 func LoadConfig() (Config, error) {
@@ -44,6 +45,7 @@ func LoadConfig() (Config, error) {
 	_ = viper.BindEnv("llm_api_key", "LLM_API_KEY")
 	_ = viper.BindEnv("llm_model", "LLM_MODEL")
 	_ = viper.BindEnv("llm_endpoint", "LLM_ENDPOINT")
+	_ = viper.BindEnv("save_sessions_limit", "SAVE_SESSIONS_LIMIT")
 
 	// Load configuration file
 	viper.AddConfigPath(configDir)
