@@ -41,7 +41,17 @@ DOWNLOAD_URL="https://github.com/$GITHUB_REPO/releases/download/$LATEST_RELEASE/
 
 echo "Downloading Recall $LATEST_RELEASE for ${OS}/${ARCH}..."
 TEMP_DIR=$(mktemp -d)
-curl -sL "$DOWNLOAD_URL" -o "$TEMP_DIR/recall.tar.gz"
+
+if ! curl -sfL "$DOWNLOAD_URL" -o "$TEMP_DIR/recall.tar.gz"; then
+    echo "\nError: Failed to download Recall from $DOWNLOAD_URL"
+    echo "The release '$LATEST_RELEASE' may not be published on GitHub Releases yet."
+    echo "To compile and install locally, please run:"
+    echo "  git clone https://github.com/$GITHUB_REPO.git"
+    echo "  cd recall"
+    echo "  make install"
+    rm -rf "$TEMP_DIR"
+    exit 1
+fi
 
 echo "Extracting binary..."
 tar -xzf "$TEMP_DIR/recall.tar.gz" -C "$TEMP_DIR"
