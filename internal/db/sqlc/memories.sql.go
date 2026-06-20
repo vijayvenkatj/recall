@@ -144,24 +144,23 @@ func (q *Queries) ListMemories(ctx context.Context, arg ListMemoriesParams) ([]M
 }
 
 const searchMemories = `-- name: SearchMemories :many
-SELECT id, session_id, title, summary, created_at
+SELECT memories.id, memories.session_id, memories.title, memories.summary, memories.created_at
 FROM memories
-WHERE rowid IN (
-    SELECT rowid
-    FROM memories_fts
-    WHERE memories_fts.title MATCH ? OR memories_fts.summary MATCH ?
-)
-LIMIT ?
+JOIN memories_fts ON memories.rowid = memories_fts.rowid
+WHERE memories_fts.title MATCH ?1
+   OR memories_fts.summary MATCH ?1
+   OR memories_fts.commands MATCH ?1
+ORDER BY bm25(memories_fts)
+LIMIT ?2
 `
 
 type SearchMemoriesParams struct {
-	Title   string
-	Summary string
-	Limit   int64
+	Query    string
+	LimitVal int64
 }
 
 func (q *Queries) SearchMemories(ctx context.Context, arg SearchMemoriesParams) ([]Memory, error) {
-	rows, err := q.db.QueryContext(ctx, searchMemories, arg.Title, arg.Summary, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, searchMemories, arg.Query, arg.LimitVal)
 	if err != nil {
 		return nil, err
 	}

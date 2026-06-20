@@ -39,14 +39,14 @@ WHERE id = ?
 RETURNING *;
 
 -- name: SearchMemories :many
-SELECT *
+SELECT memories.*
 FROM memories
-WHERE rowid IN (
-    SELECT rowid
-    FROM memories_fts
-    WHERE memories_fts.title MATCH ? OR memories_fts.summary MATCH ?
-)
-LIMIT ?;
+JOIN memories_fts ON memories.rowid = memories_fts.rowid
+WHERE memories_fts.title MATCH sqlc.arg(query)
+   OR memories_fts.summary MATCH sqlc.arg(query)
+   OR memories_fts.commands MATCH sqlc.arg(query)
+ORDER BY bm25(memories_fts)
+LIMIT sqlc.arg(limit_val);
 
 -- name: DeleteMemory :exec
 DELETE FROM memories

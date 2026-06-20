@@ -20,8 +20,9 @@ type Command struct {
 }
 
 type MemoriesFt struct {
-	Title   string
-	Summary string
+	Title    string
+	Summary  string
+	Commands string
 }
 
 type Memory struct {

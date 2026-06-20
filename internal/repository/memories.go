@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"regexp"
+	"strings"
 
 	sqlc "github.com/vijayvenkatj/recall/internal/db/sqlc"
 )
@@ -65,13 +67,32 @@ func (r *MemoryRepository) Update(ctx context.Context, params UpdateMemoryParams
 }
 
 func (r *MemoryRepository) Search(ctx context.Context, query string, limit int32) ([]Memory, error) {
+	formattedQuery := formatFTS5Query(query)
+	if formattedQuery == "" {
+		return nil, nil
+	}
+
 	return r.queries.SearchMemories(ctx, sqlc.SearchMemoriesParams{
-		Title:   query,
-		Summary: query,
-		Limit:   int64(limit),
+		Query:    formattedQuery,
+		LimitVal: int64(limit),
 	})
 }
 
 func (r *MemoryRepository) Delete(ctx context.Context, id string) error {
 	return r.queries.DeleteMemory(ctx, id)
+}
+
+var wordRegexp = regexp.MustCompile(`[a-zA-Z0-9_]+`)
+
+func formatFTS5Query(query string) string {
+	words := wordRegexp.FindAllString(query, -1)
+	if len(words) == 0 {
+		return ""
+	}
+
+	var parts []string
+	for _, w := range words {
+		parts = append(parts, w+"*")
+	}
+	return strings.Join(parts, " AND ")
 }
