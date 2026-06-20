@@ -83,3 +83,53 @@ func (p *OllamaProvider) GenerateSuggestions(ctx context.Context, repo string, c
 
 	return suggestions, nil
 }
+
+func (p *OllamaProvider) GenerateSummary(ctx context.Context, repo string, commands []string, problem string, fix string) (SummaryResult, error) {
+	url := fmt.Sprintf("%s/api/generate", p.endpoint)
+
+	prompt := BuildSummaryPrompt(repo, commands, problem, fix)
+
+	payload := map[string]interface{}{
+		"model":  p.model,
+		"prompt": prompt,
+		"format": "json",
+		"stream": false,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return SummaryResult{}, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return SummaryResult{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return SummaryResult{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return SummaryResult{}, fmt.Errorf("Ollama API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var response struct {
+		Response string `json:"response"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return SummaryResult{}, err
+	}
+
+	var result SummaryResult
+	if err := json.Unmarshal([]byte(response.Response), &result); err != nil {
+		return SummaryResult{}, fmt.Errorf("failed to parse summary JSON from Ollama: %w", err)
+	}
+
+	return result, nil
+}
