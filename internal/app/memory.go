@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
+	"github.com/vijayvenkatj/recall/internal/llm"
 	"github.com/vijayvenkatj/recall/internal/repository"
 )
 
@@ -26,19 +27,23 @@ const (
 )
 
 type saveModel struct {
-	app         *App
-	ctx         context.Context
-	sessions    []repository.Session
-	commands    []repository.Command
-	viewport    viewport.Model
-	problemInput textinput.Model
-	fixInput     textinput.Model
-	selectedIdx int
-	step        saveStep
-	err         error
-	numCmds     int
-	width       int
-	height      int
+	app            *App
+	ctx            context.Context
+	sessions       []repository.Session
+	commands       []repository.Command
+	viewport       viewport.Model
+	problemInput   textinput.Model
+	fixInput       textinput.Model
+	selectedIdx    int
+	step           saveStep
+	err            error
+	numCmds        int
+	width          int
+	height         int
+	llmSuggestions llm.Suggestions
+	llmLoading     bool
+	llmError       error
+	customTitle    string
 }
 
 func (m saveModel) Init() tea.Cmd {
@@ -109,6 +114,18 @@ func (m saveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.viewport.SetContent(CommandListStyle.Render(content.String()))
 				m.viewport.YOffset = 0
+
+				// Trigger LLM suggestion generation if configured
+				if m.app.LLMProvider != nil {
+					m.llmLoading = true
+					m.llmError = nil
+					m.customTitle = ""
+					m.llmSuggestions = llm.Suggestions{}
+					// Clear text inputs initially so they don't leak from a previous run
+					m.problemInput.SetValue("")
+					m.fixInput.SetValue("")
+					return m, m.fetchSuggestions()
+				}
 			}
 		case stepReviewCommands:
 			if msg.String() == "enter" {
@@ -147,6 +164,23 @@ func (m saveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.problemInput.Width = msg.Width - h - 4
 		m.fixInput.Width = msg.Width - h - 4
 
+	case llmSuggestionsMsg:
+		m.llmLoading = false
+		if msg.err != nil {
+			m.llmError = msg.err
+		} else {
+			m.llmSuggestions = msg.suggestions
+			m.customTitle = msg.suggestions.Title
+			
+			// Pre-fill fields if they are still empty
+			if m.problemInput.Value() == "" {
+				m.problemInput.SetValue(msg.suggestions.Problem)
+			}
+			if m.fixInput.Value() == "" {
+				m.fixInput.SetValue(msg.suggestions.Fix)
+			}
+		}
+
 	case saveResultMsg:
 		if msg.err != nil {
 			m.err = msg.err
@@ -162,9 +196,36 @@ func (m saveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 type saveResultMsg struct{ err error }
 
+type llmSuggestionsMsg struct {
+	suggestions llm.Suggestions
+	err         error
+}
+
+func (m saveModel) fetchSuggestions() tea.Cmd {
+	return func() tea.Msg {
+		if m.app.LLMProvider == nil {
+			return nil
+		}
+
+		var cmdList []string
+		for _, c := range m.commands {
+			cmdList = append(cmdList, c.Command)
+		}
+
+		suggestions, err := m.app.LLMProvider.GenerateSuggestions(m.ctx, m.sessions[m.selectedIdx].Repo, cmdList)
+		return llmSuggestionsMsg{
+			suggestions: suggestions,
+			err:         err,
+		}
+	}
+}
+
 func (m saveModel) saveMemory() tea.Msg {
 	summary := fmt.Sprintf("Problem:\n%s\n\nFix:\n%s", m.problemInput.Value(), m.fixInput.Value())
 	title := fmt.Sprintf("Memory for %s", m.sessions[m.selectedIdx].Repo)
+	if m.customTitle != "" {
+		title = m.customTitle
+	}
 
 	_, err := m.app.Store.Memories.Create(m.ctx, repository.CreateMemoryParams{
 		ID:        uuid.NewString(),
@@ -205,10 +266,24 @@ func (m saveModel) View() string {
 		s.WriteString(SubtleStyle.Render("\n\n enter: continue • esc: back • q: quit"))
 	case stepInputProblem:
 		s.WriteString("What was the problem about?\n\n")
+		if m.llmLoading {
+			s.WriteString(SubtleStyle.Render("🤖 [LLM: Analyzing commands to generate suggestions...]") + "\n\n")
+		} else if m.llmError != nil {
+			s.WriteString(SubtleStyle.Render(fmt.Sprintf("⚠️ [LLM Error: %v]", m.llmError)) + "\n\n")
+		} else if m.llmSuggestions.Problem != "" {
+			s.WriteString(SelectedStyle.Render("🤖 [LLM: Suggestions pre-filled from commands!]") + "\n\n")
+		}
 		s.WriteString(m.problemInput.View())
 		s.WriteString(SubtleStyle.Render("\n\n enter: next • esc: back"))
 	case stepInputFix:
 		s.WriteString("What did you do to fix this?\n\n")
+		if m.llmLoading {
+			s.WriteString(SubtleStyle.Render("🤖 [LLM: Analyzing commands to generate suggestions...]") + "\n\n")
+		} else if m.llmError != nil {
+			s.WriteString(SubtleStyle.Render(fmt.Sprintf("⚠️ [LLM Error: %v]", m.llmError)) + "\n\n")
+		} else if m.llmSuggestions.Fix != "" {
+			s.WriteString(SelectedStyle.Render("🤖 [LLM: Suggestions pre-filled from commands!]") + "\n\n")
+		}
 		s.WriteString(m.fixInput.View())
 		s.WriteString(SubtleStyle.Render("\n\n enter: save memory • esc: back"))
 	case stepSaving:

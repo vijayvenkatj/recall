@@ -3,14 +3,16 @@ package app
 import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/vijayvenkatj/recall/internal/config"
+	"github.com/vijayvenkatj/recall/internal/llm"
 	"github.com/vijayvenkatj/recall/internal/repository"
 	"go.uber.org/zap"
 )
 
 type App struct {
-	Config config.Config
-	Store  repository.Store
-	Logger *zap.Logger
+	Config      config.Config
+	Store       repository.Store
+	Logger      *zap.Logger
+	LLMProvider llm.Provider
 }
 
 var (
@@ -42,9 +44,11 @@ var (
 )
 
 func New(config config.Config, store repository.Store, logger *zap.Logger) *App {
+	llmClient, _ := llm.NewClient(config.LLMProvider, config.LLMAPIKey, config.LLMModel, config.LLMEndpoint)
 	return &App{
-		Config: config,
-		Store:  store,
-		Logger: logger,
+		Config:      config,
+		Store:       store,
+		Logger:      logger,
+		LLMProvider: llmClient,
 	}
 }

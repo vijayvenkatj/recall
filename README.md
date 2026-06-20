@@ -1,45 +1,41 @@
-# 🧠 Recall
+# Recall
 
-[![Go Version](https://img.shields.io/github/go-mod/go-version/vijayvenkatj/recall?color=00ADD8&logo=go)](https://go.dev/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux-lightgrey)](#)
-
-Recall is a professional, privacy-first developer productivity CLI tool designed to capture your terminal history and structure them into searchable, contextual memories. Built with Go and SQLite FTS5, Recall helps you remember how you solved specific debugging issues, environment setups, and system bugs directly from your terminal.
+Recall is a privacy-first, local-only CLI tool that captures your terminal command history and groups them into structured, searchable memories. Built with Go and SQLite FTS5, Recall helps you remember exactly how you solved specific debugging issues, environment setups, or system bugs directly from your terminal.
 
 ---
 
-## ⚡️ Key Features
+## Features
 
-- **⚡ Lightweight Shell Integration** — Leverages asynchronous zsh hooks to log commands and exit status to a local file without introducing latency into your shell execution.
-- **📂 Context-Aware Session Grouping** — Automatically clusters commands into developer sessions based on working directory, active Git repository, and idle times (30-minute default threshold).
-- **📟 Interactive Terminal TUI** — Smooth, terminal-based user interfaces for both saving memories (defining problem & resolution) and searching through them.
-- **🔍 Full-Text Search (FTS5)** — Lightning-fast SQLite FTS5 indexing allowing you to search through your shell commands, repositories, problem descriptions, and fixes.
-- **🔒 Local-First & Privacy-Focused** — 100% local database with zero external analytics or API calls. Your terminal activity and workspace histories never leave your machine.
-
----
-
-## 🏗 How It Works
-
-Recall splits the workflow into three primary stages to seamlessly capture and retrieve context:
-
-1. **Capture**: A lightweight shell hook logs execution details (timestamp, working directory, git repository, exit status, and command) to a local raw events log (`~/.local/share/recall/events.log`) without introducing latency to your shell.
-2. **Consolidate**: Running `recall sync` parses the raw events and groups them into local dev sessions (defined as commands run within a 30-minute window in the same repository). Running `recall save` opens an interactive terminal TUI to annotate these sessions with a **Problem** and a **Fix**, saving them to SQLite.
-3. **Retrieve**: Running `recall <query>` queries the SQLite FTS5 index to search your memories, rendering matches inside an interactive details browser.
+- **Asynchronous Capture**: Lightweight shell integration hook records commands, working directories, Git repositories, and exit status to a local event log asynchronously without introducing latency to your shell.
+- **Context-Aware Sessions**: Automatically groups commands into local developer sessions based on repository name, working directory, and inactive thresholds (default 30-minute idle window).
+- **BM25 Search**: Matches terms dynamically against problems, resolutions, and even exact shell commands, sorted by SQLite FTS5 BM25 relevance scores.
+- **Pluggable LLM Suggestions**: Leverages local Ollama instances or Google Gemini to analyze your command logs and pre-fill memory titles, problem statements, and fixes inside the wizard.
+- **100% Privacy-First**: 100% local database and assets with no external analytics or telemetry.
 
 ---
 
-## 🚀 Getting Started
+## How It Works
+
+Recall operates in three stages:
+
+1. **Capture**: A lightweight shell hook logs execution details (timestamp, directory, exit code, Git repository, and command) to `~/.local/share/recall/events.log`.
+2. **Consolidate**: Running `recall save` opens an interactive TUI to review recent sessions. If an LLM provider is configured, it auto-drafts suggestions for the problem and fix in the background.
+3. **Retrieve**: Running `recall <query>` queries the SQLite FTS5 virtual table to find relevant memories and command histories inside an interactive viewer.
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
 Ensure you have the following installed:
-- **Go** (version 1.26.3 or higher)
-- **Make**
-- **sqlc** (for database code generation)
+- Go (1.26.3 or higher)
+- Make
+- sqlc
 
 ### 1. Build and Install
 
-Clone the repository and run the Makefile install command:
+Clone the repository and run the install target:
 
 ```bash
 git clone https://github.com/vijayvenkatj/recall.git
@@ -47,95 +43,112 @@ cd recall
 make install
 ```
 
-This compiles the binary, moves it to `~/.local/bin/recall`, and prompts you to complete the setup.
+This compiles the binary and installs it to `~/.local/bin/recall`.
 
-### 2. Configure Shell Hooks & Database
+### 2. Configure Shell Hooks
 
-Run the installation command to initialize directories, configure database migrations, and export shell hooks:
+Initialize configurations, databases, and hooks:
 
 ```bash
 recall install
 ```
 
-### 3. Add to your Shell Profile
+### 3. Add to Shell Profile
 
-Add the following line to your `~/.zshrc` configuration to enable command capturing:
+Source the generated hook file in your shell configuration.
 
-```bash
-source ~/.config/recall/hooks.zsh
-```
+- **Zsh (`~/.zshrc`)**:
+  ```bash
+  source ~/.config/recall/hooks.zsh
+  ```
+- **Bash (`~/.bashrc`)**:
+  ```bash
+  source ~/.config/recall/hooks.bash
+  ```
+- **Fish (`~/.config/fish/config.fish`)**:
+  ```fish
+  source ~/.config/recall/hooks.fish
+  ```
 
-Then reload your shell:
-```bash
-source ~/.zshrc
-```
+Restart your terminal or reload your configuration (e.g., `source ~/.zshrc`).
 
 ---
 
-## 📖 Usage
+## Usage
 
 ### Saving a Memory
-When you finish a task, solve a bug, or execute a complex pipeline, run:
+Whenever you solve a bug or complete a task, run:
 ```bash
 recall save
 ```
-An interactive TUI will open:
-1. **Select Session**: Choose from your most recent dev sessions (shows repository name, timestamp, and command count).
-2. **Review Commands**: Scroll through the list of commands executed during that session to verify.
-3. **Problem Details**: Input a description of the problem/error you faced.
-4. **Fix Details**: Input how you resolved it.
-5. **Save**: The details are saved as a searchable memory.
+An interactive wizard will launch:
+1. Select a recent session to review.
+2. Review command logs.
+3. Annotate or edit the generated suggestions for the problem and resolution.
+4. Save the entry to SQLite.
 
 ### Searching Memories
-Search through your history with:
+Search through your database by typing keyword fragments:
 ```bash
-recall "my search term"
+recall docker container mapping
 ```
-Or simply run `recall` with keywords:
+Running `recall` with no arguments will open the search viewer listing your 20 most recent memories:
 ```bash
-recall docker container debug
+recall
 ```
-This triggers an interactive search interface showing matching memories. Press `Enter` on any memory to view its details (Title, Problem, Fix) along with the exact command history that led to the solution.
+Inside the search viewer, press `/` to filter matching items. Press `Enter` to expand details and view the command logs that solved the problem.
 
 ---
 
-## 🛠 Project Structure
+## Configuration
 
-- `cmd/` — CLI subcommands (`root`, `install`, `sync`, `save`) utilizing the Cobra CLI framework.
-- `internal/app/` — Core application logic including interactive terminal TUI components (`memory.go`, `search.go`), database synchronization (`sync.go`), and installation helpers (`install.go`).
-- `internal/repository/` — SQLite abstraction layer created using sqlc.
-- `internal/db/migrations/` — Database version control schema using Goose migrations (uses modernc.org/sqlite driver).
-- `internal/assets/` — Embedded templates (e.g. Zsh shell hook script).
+Recall is configured via a YAML file located at `~/.config/recall/config.yaml`. 
+
+Settings can be overridden by environment variables or a `.env` file:
+
+| YAML Configuration Key | Environment Variable | Description | Default |
+| :--- | :--- | :--- | :--- |
+| `db_driver` | `DB_DRIVER` | Database engine driver | `sqlite` |
+| `db_string` | `DB_STRING` | Absolute path to SQLite file | `~/.local/share/recall/recall.db` |
+| `event_log_path` | `EVENT_LOG_PATH` | Path to raw shell events file | `~/.local/share/recall/events.log` |
+| `log_level` | `LOG_LEVEL` | Application logging level | `info` |
+| `llm_provider` | `LLM_PROVIDER` | LLM suggestions provider (`gemini` or `ollama`) | `""` (Disabled) |
+| `llm_api_key` | `LLM_API_KEY` | API key (required for Gemini) | `""` |
+| `llm_model` | `LLM_MODEL` | LLM model name (e.g. `gemini-2.5-flash` or `llama3`) | Provider default |
+| `llm_endpoint` | `LLM_ENDPOINT` | Local service endpoint (for Ollama) | `http://localhost:11434` |
+
+### LLM Configurations
+
+#### Google Gemini API Setup
+In `~/.config/recall/config.yaml`:
+```yaml
+llm_provider: "gemini"
+llm_api_key: "YOUR_GEMINI_API_KEY"
+llm_model: "gemini-2.5-flash"
+```
+
+#### Local Ollama Setup
+Start your local Ollama server (`ollama run llama3`), then configure `~/.config/recall/config.yaml`:
+```yaml
+llm_provider: "ollama"
+llm_endpoint: "http://localhost:11434"
+llm_model: "llama3"
+```
 
 ---
 
-## ⚙️ Configuration
+## Contributing
 
-Recall is configured out of the box with zero-setup defaults. If customization is required, the following environment variables can be set in your `.env` or shell configuration:
-
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `DB_DRIVER` | Database engine driver | `sqlite` |
-| `DB_STRING` | Absolute path to SQLite file | `~/.local/share/recall/recall.db` |
-| `EVENT_LOG_PATH` | Path to raw shell events file | `~/.local/share/recall/events.log` |
-| `LOG_LEVEL` | Application logger severity level | `info` |
-
----
-
-## 🤝 Contributing
-
-We welcome contributions of any size! Here is how you can help:
 1. Fork the repository.
-2. Create a new branch: `git checkout -b feature/my-new-feature`.
-3. If database models or queries are altered, modify files in `internal/db/queries/` or `internal/db/migrations/`, then run:
+2. Create a feature branch: `git checkout -b feature/my-feature`.
+3. If database models or queries are altered, run:
    ```bash
    make generate
    ```
-4. Commit your changes and push them to your fork.
-5. Open a Pull Request!
+4. Push changes and submit a Pull Request.
 
 ---
 
-## 📄 License
+## License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for more details.
+Distributed under the MIT License. See [LICENSE](LICENSE) for details.

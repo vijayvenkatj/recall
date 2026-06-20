@@ -167,13 +167,27 @@ func (m searchModel) View() string {
 
 func (app *App) Search(ctx context.Context, query string) error {
 	cleanQuery := strings.TrimSpace(query)
+
+	var memories []repository.Memory
+	var err error
+
 	if cleanQuery == "" {
-		return nil
+		memories, err = app.Store.Memories.List(ctx, repository.Page{Limit: 20})
+	} else {
+		memories, err = app.Store.Memories.Search(ctx, cleanQuery, 20)
 	}
 
-	memories, err := app.Store.Memories.Search(ctx, cleanQuery, 20)
 	if err != nil {
 		return fmt.Errorf("search failed: %w", err)
+	}
+
+	if len(memories) == 0 {
+		if cleanQuery == "" {
+			fmt.Println("No developer memories saved yet. Run 'recall save' to create your first memory!")
+		} else {
+			fmt.Printf("No memories found matching: '%s'\n", cleanQuery)
+		}
+		return nil
 	}
 
 	items := make([]list.Item, len(memories))
@@ -186,7 +200,11 @@ func (app *App) Search(ctx context.Context, query string) error {
 	}
 
 	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
-	l.Title = fmt.Sprintf("RESULTS FOR: %s", strings.ToUpper(cleanQuery))
+	if cleanQuery == "" {
+		l.Title = "RECENT MEMORIES"
+	} else {
+		l.Title = fmt.Sprintf("RESULTS FOR: %s", strings.ToUpper(cleanQuery))
+	}
 	l.Styles.Title = headerStyle
 
 	m := searchModel{

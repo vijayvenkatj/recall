@@ -31,10 +31,6 @@ To search your memories, simply provide a query as an argument:
 	Args: cobra.ArbitraryArgs,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return cmd.Help()
-		}
-		
 		return application.Search(context.Background(), strings.Join(args, " "))
 	},
 

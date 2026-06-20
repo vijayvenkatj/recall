@@ -29,6 +29,33 @@ func (app *App) Install() error {
 		}
 	}
 
+	// 1.5. Ensure config.yaml exists
+	configFilePath := filepath.Join(configDir, "config.yaml")
+	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
+		fmt.Println("Creating default configuration file...")
+		defaultConfigContent := fmt.Sprintf(`# Recall Configuration File
+# Location: %s/config.yaml
+
+# Database configuration
+db_driver: "sqlite"
+db_string: "%s/recall.db"
+
+# Logs configuration
+event_log_path: "%s/events.log"
+log_level: "info"
+
+# LLM Suggestions configuration (optional)
+# Set provider to "gemini" or "ollama" to enable suggestions
+llm_provider: ""
+llm_api_key: ""
+llm_model: ""
+llm_endpoint: ""
+`, configDir, dataDir, dataDir)
+		if err := os.WriteFile(configFilePath, []byte(defaultConfigContent), 0644); err != nil {
+			return fmt.Errorf("failed to write config file: %w", err)
+		}
+	}
+
 	// 2. Run Migrations
 	fmt.Println("Running database migrations...")
 	if err := app.Migrate(context.Background()); err != nil {
@@ -74,8 +101,9 @@ func (app *App) Install() error {
 	}
 
 	fmt.Println("\n" + TitleStyle.Render(" INSTALLATION SUCCESSFUL "))
-	fmt.Printf("\n1. Database and logs are at: %s\n", dataDir)
-	fmt.Printf("2. Shell hooks installed to: %s\n", hookPath)
+	fmt.Printf("\n1. Configuration file is at: %s/config.yaml\n", configDir)
+	fmt.Printf("2. Database and logs are at: %s\n", dataDir)
+	fmt.Printf("3. Shell hooks installed to: %s\n", hookPath)
 	fmt.Println("\n" + SelectedStyle.Render("Final Step:") + " Add the following line to your " + SelectedStyle.Render(rcFile) + ":")
 	fmt.Printf("\n   %s\n\n", sourceCmd)
 	fmt.Printf("Then restart your terminal or run: source %s\n", rcFile)
