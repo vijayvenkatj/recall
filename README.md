@@ -26,16 +26,17 @@ Recall operates in three stages:
 
 ## Getting Started
 
-### Prerequisites
+### Installation
 
-Ensure you have the following installed:
-- Go (1.26.3 or higher)
-- Make
-- sqlc
+#### Easy Install (Recommended)
+To install the latest pre-compiled binary for macOS or Linux, run:
 
-### 1. Build and Install
+```bash
+curl -fsSL https://raw.githubusercontent.com/vijayvenkatj/recall/main/install.sh | sh
+```
 
-Clone the repository and run the install target:
+#### Build from Source
+To compile and install Recall locally, clone the repository and run:
 
 ```bash
 git clone https://github.com/vijayvenkatj/recall.git
@@ -45,7 +46,7 @@ make install
 
 This compiles the binary and installs it to `~/.local/bin/recall`.
 
-### 2. Configure Shell Hooks
+### Configure Shell Hooks
 
 Initialize configurations, databases, and hooks:
 

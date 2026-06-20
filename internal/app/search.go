@@ -133,12 +133,24 @@ func (m searchModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m searchModel) renderDetail(i item) string {
 	var s strings.Builder
 
-	s.WriteString(detailTitleStyle.Render(i.Title()))
+	// Wrap Title to fit viewport
+	wrappedTitle := lipgloss.NewStyle().
+		Width(m.viewport.Width - 2).
+		Foreground(lipgloss.Color("#7D56F4")).
+		Bold(true).
+		Render(i.Title())
+	s.WriteString(wrappedTitle)
 	s.WriteString("\n\n")
-	s.WriteString(i.memory.Summary)
+
+	// Wrap Summary to fit viewport
+	wrappedSummary := lipgloss.NewStyle().
+		Width(m.viewport.Width - 4).
+		Render(i.memory.Summary)
+	s.WriteString(wrappedSummary)
 	s.WriteString("\n")
 
 	if len(i.commands) > 0 {
+		s.WriteString("\n")
 		s.WriteString(sectionHeaderStyle.Render(" COMMAND HISTORY "))
 		s.WriteString("\n")
 		
@@ -146,7 +158,14 @@ func (m searchModel) renderDetail(i item) string {
 		for _, c := range i.commands {
 			cmds.WriteString(fmt.Sprintf("• %s\n", c.Command))
 		}
-		s.WriteString(CommandListStyle.Render(cmds.String()))
+		
+		// Wrap commands list to fit viewport
+		wrappedCmds := lipgloss.NewStyle().
+			Width(m.viewport.Width - 6).
+			PaddingLeft(2).
+			Foreground(lipgloss.Color("#8E8E8E")).
+			Render(cmds.String())
+		s.WriteString(wrappedCmds)
 	}
 
 	return s.String()
