@@ -19,6 +19,7 @@ builds:
     binary: recall
     ldflags:
       - -s -w
+      - -X github.com/vijayvenkatj/recall/cmd.version={{ .Version }}
 
 archives:
   - format: tar.gz

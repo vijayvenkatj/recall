@@ -37,14 +37,20 @@ type saveModel struct {
 	selectedIdx    int
 	step           saveStep
 	err            error
-	numCmds        int
-	width          int
-	height         int
-	llmSuggestions llm.Suggestions
-	llmLoading     bool
-	llmError       error
-	customTitle    string
+	numCmds    int
+	width      int
+	height     int
+	llmLoading bool
+	llmError   error
+	cancelLLM  context.CancelFunc
+	llmReqID   int
 }
+
+// llmTimeout caps how long the save wizard waits on an LLM summary before
+// falling back to saving the raw problem/fix. 30s (not less) because a local
+// Ollama cold-loads its model on the first call.
+// ponytail: hardcoded; make it a config knob only if it actually bites.
+const llmTimeout = 30 * time.Second
 
 func (m saveModel) Init() tea.Cmd {
 	return textinput.Blink
@@ -64,6 +70,19 @@ func (m saveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 		case "esc":
+			if m.step == stepSaving && m.llmLoading {
+				// Cancel the in-flight LLM request and go back to editing.
+				// Bumping llmReqID makes the eventual (canceled) result stale
+				// so it's ignored instead of saving.
+				if m.cancelLLM != nil {
+					m.cancelLLM()
+				}
+				m.llmReqID++
+				m.llmLoading = false
+				m.step = stepInputFix
+				m.fixInput.Focus()
+				return m, nil
+			}
 			if m.step == stepSelectSession || m.step == stepDone {
 				return m, tea.Quit
 			}
@@ -140,7 +159,11 @@ func (m saveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.app.LLMProvider != nil {
 					m.llmLoading = true
 					m.llmError = nil
-					return m, m.generateSummaryCmd()
+					m.llmReqID++
+					reqID := m.llmReqID
+					ctx, cancel := context.WithTimeout(m.ctx, llmTimeout)
+					m.cancelLLM = cancel
+					return m, m.generateSummaryCmd(ctx, reqID)
 				} else {
 					return m, m.saveManualMemory
 				}
@@ -162,10 +185,15 @@ func (m saveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.fixInput.Width = msg.Width - h - 4
 
 	case llmSummaryMsg:
+		if msg.reqID != m.llmReqID {
+			// Stale result from a request the user canceled (esc). Ignore it.
+			return m, nil
+		}
 		m.llmLoading = false
 		if msg.err != nil {
 			m.llmError = msg.err
 			// Gracefully fall back to manual values if LLM generation fails
+			// (this also covers the timeout deadline being exceeded).
 			return m, m.saveManualMemory
 		} else {
 			return m, func() tea.Msg {
@@ -192,9 +220,10 @@ type saveResultMsg struct{ err error }
 type llmSummaryMsg struct {
 	result llm.SummaryResult
 	err    error
+	reqID  int
 }
 
-func (m saveModel) generateSummaryCmd() tea.Cmd {
+func (m saveModel) generateSummaryCmd(ctx context.Context, reqID int) tea.Cmd {
 	return func() tea.Msg {
 		if m.app.LLMProvider == nil {
 			return nil
@@ -205,10 +234,11 @@ func (m saveModel) generateSummaryCmd() tea.Cmd {
 			cmdList = append(cmdList, c.Command)
 		}
 
-		result, err := m.app.LLMProvider.GenerateSummary(m.ctx, m.sessions[m.selectedIdx].Repo, cmdList, m.problemInput.Value(), m.fixInput.Value())
+		result, err := m.app.LLMProvider.GenerateSummary(ctx, m.sessions[m.selectedIdx].Repo, cmdList, m.problemInput.Value(), m.fixInput.Value())
 		return llmSummaryMsg{
 			result: result,
 			err:    err,
+			reqID:  reqID,
 		}
 	}
 }
@@ -268,7 +298,8 @@ func (m saveModel) View() string {
 		s.WriteString(SubtleStyle.Render("\n\n enter: save memory • esc: back"))
 	case stepSaving:
 		if m.llmLoading {
-			s.WriteString(SubtleStyle.Render("🤖 [LLM: Summarizing session commands, problem statement, and fix...]") + "\n\n")
+			s.WriteString(SubtleStyle.Render("🤖 [LLM: Summarizing session commands, problem statement, and fix...]") + "\n")
+			s.WriteString(SubtleStyle.Render(" esc: cancel & edit") + "\n\n")
 		} else {
 			s.WriteString("Saving memory...")
 		}

@@ -10,16 +10,19 @@ import (
 	"github.com/vijayvenkatj/recall/internal/app"
 	"github.com/vijayvenkatj/recall/internal/config"
 	"github.com/vijayvenkatj/recall/internal/repository"
-	"go.uber.org/zap"
 
 	_ "modernc.org/sqlite"
 )
 
 var application *app.App
 
+// version is overridden at release time via -ldflags "-X ...cmd.version=...".
+var version = "dev"
+
 var rootCmd = &cobra.Command{
-	Use:   "recall [query]",
-	Short: "Recall CLI - Search and manage your terminal memories",
+	Use:     "recall [query]",
+	Version: version,
+	Short:   "Recall CLI - Search and manage your terminal memories",
 	Long: `Recall is a CLI tool to capture terminal sessions and search through them using FTS5.
 To search your memories, simply provide a query as an argument:
   recall "my search term"`,
@@ -44,18 +47,13 @@ To search your memories, simply provide a query as an argument:
 			return err
 		}
 
-		logger, err := zap.NewProduction()
-		if err != nil {
-			return err
-		}
-
 		db, err := sql.Open(config.DBDriver, config.DBString)
 		if err != nil {
 			return err
 		}
 
 		store := repository.New(db)
-		application = app.New(config, *store, logger)
+		application = app.New(config, *store)
 
 		return nil
 	},

@@ -9,7 +9,7 @@ Recall is a privacy-first, local-only CLI tool that captures your terminal comma
 - **Asynchronous Capture**: Lightweight shell integration hook records commands, working directories, Git repositories, and exit status to a local event log asynchronously without introducing latency to your shell.
 - **Context-Aware Sessions**: Automatically groups commands into local developer sessions based on repository name, working directory, and inactive thresholds (default 30-minute idle window).
 - **BM25 Search**: Matches terms dynamically against problems, resolutions, and even exact shell commands, sorted by SQLite FTS5 BM25 relevance scores.
-- **Pluggable LLM Suggestions**: Leverages local Ollama instances or Google Gemini to analyze your command logs and pre-fill memory titles, problem statements, and fixes inside the wizard.
+- **Optional LLM Summaries**: With a local Ollama instance or Google Gemini configured, Recall consolidates your problem, fix, and command logs into a polished, searchable title and summary. If the provider is slow or offline it times out and saves your raw notes instead — nothing is lost.
 - **100% Privacy-First**: 100% local database and assets with no external analytics or telemetry.
 
 ---
@@ -19,7 +19,7 @@ Recall is a privacy-first, local-only CLI tool that captures your terminal comma
 Recall operates in three stages:
 
 1. **Capture**: A lightweight shell hook logs execution details (timestamp, directory, exit code, Git repository, and command) to `~/.local/share/recall/events.log`.
-2. **Consolidate**: Running `recall save` opens an interactive TUI to review recent sessions. If an LLM provider is configured, it auto-drafts suggestions for the problem and fix in the background.
+2. **Consolidate**: Running `recall save` opens an interactive TUI to review recent sessions and describe the problem and fix. If an LLM provider is configured, it consolidates your notes and command logs into a clean title and summary.
 3. **Retrieve**: Running `recall <query>` queries the SQLite FTS5 virtual table to find relevant memories and command histories inside an interactive viewer.
 
 ---

@@ -22,15 +22,6 @@ type CreateSessionParams struct {
 	UpdatedAt    int64
 }
 
-type UpdateSessionParams struct {
-	ID           string
-	Repo         string
-	StartTs      int64
-	EndTs        int64
-	CommandCount int64
-	UpdatedAt    int64
-}
-
 func NewSessionRepository(queries *sqlc.Queries) *SessionRepository {
 	return &SessionRepository{queries: queries}
 }
@@ -51,31 +42,11 @@ func (r *SessionRepository) Get(ctx context.Context, id string) (Session, error)
 	return r.queries.GetSession(ctx, id)
 }
 
-func (r *SessionRepository) ListByRepo(ctx context.Context, repo string, page Page) ([]Session, error) {
-	page = normalizePage(page)
-	return r.queries.ListSessionsByRepo(ctx, sqlc.ListSessionsByRepoParams{
-		Repo:   repo,
-		Limit:  page.Limit,
-		Offset: page.Offset,
-	})
-}
-
 func (r *SessionRepository) ListRecent(ctx context.Context, page Page) ([]Session, error) {
 	page = normalizePage(page)
 	return r.queries.ListRecentSessions(ctx, sqlc.ListRecentSessionsParams{
 		Limit:  page.Limit,
 		Offset: page.Offset,
-	})
-}
-
-func (r *SessionRepository) Update(ctx context.Context, params UpdateSessionParams) (Session, error) {
-	return r.queries.UpdateSession(ctx, sqlc.UpdateSessionParams{
-		Repo:         params.Repo,
-		StartTs:      params.StartTs,
-		EndTs:        params.EndTs,
-		CommandCount: params.CommandCount,
-		UpdatedAt:    params.UpdatedAt,
-		ID:           params.ID,
 	})
 }
 

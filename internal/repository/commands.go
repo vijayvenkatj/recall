@@ -90,33 +90,6 @@ func (r *CommandRepository) ListBySession(ctx context.Context, sessionID string,
 	})
 }
 
-func (r *CommandRepository) ListByRepo(ctx context.Context, repo string, page Page) ([]Command, error) {
-	page = normalizePage(page)
-	return r.queries.ListCommandsByRepo(ctx, sqlc.ListCommandsByRepoParams{
-		Repo:   sql.NullString{String: repo, Valid: true},
-		Limit:  page.Limit,
-		Offset: page.Offset,
-	})
-}
-
-func (r *CommandRepository) ListRecent(ctx context.Context, page Page) ([]Command, error) {
-	page = normalizePage(page)
-	return r.queries.ListRecentCommands(ctx, sqlc.ListRecentCommandsParams{
-		Limit:  page.Limit,
-		Offset: page.Offset,
-	})
-}
-
-func (r *CommandRepository) ListInTimeRange(ctx context.Context, startTs int64, endTs int64, page Page) ([]Command, error) {
-	page = normalizePage(page)
-	return r.queries.ListCommandsInTimeRange(ctx, sqlc.ListCommandsInTimeRangeParams{
-		Timestamp:   startTs,
-		Timestamp_2: endTs,
-		Limit:       page.Limit,
-		Offset:      page.Offset,
-	})
-}
-
 func (r *CommandRepository) Delete(ctx context.Context, id string) error {
 	return r.queries.DeleteCommand(ctx, id)
 }
