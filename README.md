@@ -20,7 +20,7 @@ Recall operates in three stages:
 
 1. **Capture**: A lightweight shell hook logs execution details (timestamp, directory, exit code, Git repository, and command) to `~/.local/share/recall/events.log`.
 2. **Consolidate**: Running `recall save` opens an interactive TUI to review recent sessions and describe the problem and fix. If an LLM provider is configured, it consolidates your notes and command logs into a clean title and summary.
-3. **Retrieve**: Running `recall <query>` queries the SQLite FTS5 virtual table to find relevant memories and command histories inside an interactive viewer.
+3. **Retrieve**: Running `recall <query>` queries the SQLite FTS5 virtual table to find relevant memories inside an interactive viewer. To browse the raw captured history before you've saved any memory, use `recall history`.
 
 ---
 
@@ -98,6 +98,17 @@ Running `recall` with no arguments will open the search viewer listing your 20 m
 recall
 ```
 Inside the search viewer, press `/` to filter matching items. Press `Enter` to expand details and view the command logs that solved the problem.
+
+### Browsing Command History
+Memories are curated. To browse everything Recall has captured — even before you've saved a memory — use `history`:
+```bash
+recall history
+```
+This lists your recent sessions. Pass a query to find the sessions that contain a matching command:
+```bash
+recall history docker compose
+```
+Press `Enter` to view a session's commands (with `✓`/`✗` exit status), `/` to filter, and `q` to quit. Use `-n` to change how many sessions are shown.
 
 ---
 

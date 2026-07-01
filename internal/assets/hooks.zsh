@@ -4,7 +4,24 @@ typeset -g RECALL_CMD=""
 typeset -g RECALL_TS=0
 typeset -g RECALL_CWD=""
 
+# Commands matching this (case-insensitive) are never recorded, so secrets
+# never touch the log. Set RECALL_IGNORE to a regex for your own excludes.
+typeset -g RECALL_SECRET_RE='(password|passwd|secret|token|api[_-]?key|access[_-]?key|bearer|authorization|credential|private[_-]?key)'
+
+recall_should_ignore() {
+    local cmd="$1"
+    # Leading space = "don't record this" (like HISTCONTROL=ignorespace).
+    [[ "$cmd" == ' '* ]] && return 0
+    [[ "${cmd:l}" =~ $RECALL_SECRET_RE ]] && return 0
+    [[ -n "$RECALL_IGNORE" && "$cmd" =~ $RECALL_IGNORE ]] && return 0
+    return 1
+}
+
 preexec() {
+    if recall_should_ignore "$1"; then
+        RECALL_CMD=""
+        return
+    fi
     RECALL_CMD="$1"
     RECALL_TS=$(date +%s)
     RECALL_CWD="$PWD"

@@ -50,6 +50,18 @@ func (r *SessionRepository) ListRecent(ctx context.Context, page Page) ([]Sessio
 	})
 }
 
+// SearchByCommand returns sessions containing a command matching the query
+// (substring, newest first).
+func (r *SessionRepository) SearchByCommand(ctx context.Context, query string, limit int64) ([]Session, error) {
+	if limit <= 0 || limit > maxLimit {
+		limit = defaultLimit
+	}
+	return r.queries.SearchSessionsByCommand(ctx, sqlc.SearchSessionsByCommandParams{
+		Pattern:  likePattern(query),
+		LimitVal: limit,
+	})
+}
+
 func (r *SessionRepository) TouchForCommand(ctx context.Context, id string, endTs int64, updatedAt int64) (Session, error) {
 	return r.queries.TouchSessionForCommand(ctx, sqlc.TouchSessionForCommandParams{
 		EndTs:     endTs,

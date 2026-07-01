@@ -59,3 +59,11 @@ RETURNING *;
 -- name: DeleteSession :exec
 DELETE FROM sessions
 WHERE id = ?;
+
+-- name: SearchSessionsByCommand :many
+SELECT DISTINCT s.id, s.repo, s.start_ts, s.end_ts, s.command_count, s.created_at, s.updated_at
+FROM sessions s
+JOIN commands c ON c.session_id = s.id
+WHERE c.command LIKE sqlc.arg(pattern) ESCAPE '\'
+ORDER BY s.end_ts DESC, s.updated_at DESC
+LIMIT sqlc.arg(limit_val);

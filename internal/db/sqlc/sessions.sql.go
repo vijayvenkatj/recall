@@ -182,6 +182,51 @@ func (q *Queries) ListSessionsByRepo(ctx context.Context, arg ListSessionsByRepo
 	return items, nil
 }
 
+const searchSessionsByCommand = `-- name: SearchSessionsByCommand :many
+SELECT DISTINCT s.id, s.repo, s.start_ts, s.end_ts, s.command_count, s.created_at, s.updated_at
+FROM sessions s
+JOIN commands c ON c.session_id = s.id
+WHERE c.command LIKE ?1 ESCAPE '\'
+ORDER BY s.end_ts DESC, s.updated_at DESC
+LIMIT ?2
+`
+
+type SearchSessionsByCommandParams struct {
+	Pattern  string
+	LimitVal int64
+}
+
+func (q *Queries) SearchSessionsByCommand(ctx context.Context, arg SearchSessionsByCommandParams) ([]Session, error) {
+	rows, err := q.db.QueryContext(ctx, searchSessionsByCommand, arg.Pattern, arg.LimitVal)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Session
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.Repo,
+			&i.StartTs,
+			&i.EndTs,
+			&i.CommandCount,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const touchSessionForCommand = `-- name: TouchSessionForCommand :one
 UPDATE sessions
 SET
