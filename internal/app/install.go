@@ -111,6 +111,13 @@ llm_endpoint: ""
 	fmt.Printf("\n   %s\n\n", sourceCmd)
 	fmt.Printf("Then restart your terminal or run: source %s\n", rcFile)
 
+	completionCmd := fmt.Sprintf("source <(recall completion %s)", shellType)
+	if shellType == "fish" {
+		completionCmd = "recall completion fish | source"
+	}
+	fmt.Println("\n" + SelectedStyle.Render("Optional:") + " enable tab-completion by also adding:")
+	fmt.Printf("\n   %s\n", completionCmd)
+
 	return nil
 }
 

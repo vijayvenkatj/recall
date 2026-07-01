@@ -27,29 +27,28 @@ const (
 )
 
 type saveModel struct {
-	app            *App
-	ctx            context.Context
-	sessions       []repository.Session
-	commands       []repository.Command
-	viewport       viewport.Model
-	problemInput   textinput.Model
-	fixInput       textinput.Model
-	selectedIdx    int
-	step           saveStep
-	err            error
-	numCmds    int
-	width      int
-	height     int
-	llmLoading bool
-	llmError   error
-	cancelLLM  context.CancelFunc
-	llmReqID   int
+	app          *App
+	ctx          context.Context
+	sessions     []repository.Session
+	commands     []repository.Command
+	viewport     viewport.Model
+	problemInput textinput.Model
+	fixInput     textinput.Model
+	selectedIdx  int
+	step         saveStep
+	err          error
+	numCmds      int
+	width        int
+	height       int
+	llmLoading   bool
+	llmError     error
+	cancelLLM    context.CancelFunc
+	llmReqID     int
 }
 
 // llmTimeout caps how long the save wizard waits on an LLM summary before
 // falling back to saving the raw problem/fix. 30s (not less) because a local
 // Ollama cold-loads its model on the first call.
-// ponytail: hardcoded; make it a config knob only if it actually bites.
 const llmTimeout = 30 * time.Second
 
 func (m saveModel) Init() tea.Cmd {
@@ -125,7 +124,7 @@ func (m saveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				m.commands = cmds
-				
+
 				// Initialize viewport
 				var content strings.Builder
 				for _, c := range cmds {
@@ -176,11 +175,11 @@ func (m saveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		
+
 		h, v := lipgloss.NewStyle().Margin(1, 2).GetFrameSize()
 		m.viewport.Width = msg.Width - h
 		m.viewport.Height = msg.Height - v - 6
-		
+
 		m.problemInput.Width = msg.Width - h - 4
 		m.fixInput.Width = msg.Width - h - 4
 

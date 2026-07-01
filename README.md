@@ -10,7 +10,7 @@ Recall is a privacy-first, local-only CLI tool that captures your terminal comma
 - **Context-Aware Sessions**: Automatically groups commands into local developer sessions based on repository name, working directory, and inactive thresholds (default 30-minute idle window).
 - **BM25 Search**: Matches terms dynamically against problems, resolutions, and even exact shell commands, sorted by SQLite FTS5 BM25 relevance scores.
 - **Optional LLM Summaries**: With a local Ollama instance or Google Gemini configured, Recall consolidates your problem, fix, and command logs into a polished, searchable title and summary. If the provider is slow or offline it times out and saves your raw notes instead — nothing is lost.
-- **100% Privacy-First**: 100% local database and assets with no external analytics or telemetry.
+- **100% Privacy-First**: 100% local database and assets with no external analytics or telemetry. Secret values are redacted at capture, so they never touch the log — see [Privacy](#privacy--ignoring-commands).
 
 ---
 
@@ -73,6 +73,23 @@ Source the generated hook file in your shell configuration.
 
 Restart your terminal or reload your configuration (e.g., `source ~/.zshrc`).
 
+### Shell Completion (Optional)
+
+Recall ships tab-completion for its commands and flags. Enable it for your shell:
+
+```bash
+# Zsh — add to ~/.zshrc (ensure compinit runs):
+source <(recall completion zsh)
+
+# Bash — add to ~/.bashrc:
+source <(recall completion bash)
+
+# Fish:
+recall completion fish | source
+```
+
+Run `recall completion --help` for instructions on installing completions permanently.
+
 ---
 
 ## Usage
@@ -109,6 +126,32 @@ This lists your recent sessions. Pass a query to find the sessions that contain 
 recall history docker compose
 ```
 Press `Enter` to view a session's commands (with `✓`/`✗` exit status), `/` to filter, and `q` to quit. Use `-n` to change how many sessions are shown.
+
+---
+
+## Privacy & Ignoring Commands
+
+The shell hook processes every command **before** anything is written to disk, so secrets never reach the log or the search index.
+
+**Secrets are redacted, not dropped.** When a command looks like it carries a secret (a built-in, case-insensitive set: `password`, `secret`, `token`, `api_key`, `access_key`, `bearer`, `credential`, `passphrase`, `private_key`), the sensitive **value** is replaced with `<redacted>` and the rest of the command is kept — so the memory stays useful:
+
+| You run | Recall records |
+| :--- | :--- |
+| `export GITHUB_TOKEN=ghp_abc123` | `export GITHUB_TOKEN=<redacted>` |
+| `mysql --password=hunter2 db` | `mysql --password=<redacted> db` |
+| `curl -H "Authorization: Bearer eyJ…"` | `curl -H "Authorization: Bearer <redacted>"` |
+
+**Commands are dropped entirely when they:**
+
+- **Start with a space** — prefix any command with a space to keep it out of Recall (the `HISTCONTROL=ignorespace` convention; best-effort in Bash, where `DEBUG` traps don't preserve the leading space).
+- **Match your `RECALL_IGNORE` regex** — export it from your shell profile to exclude noise or extra secret shapes:
+  ```bash
+  export RECALL_IGNORE='^(ls|cd|clear|pwd)\b|MY_SECRET'
+  ```
+
+Redaction is heuristic and covers the common shapes (`NAME=value`, `--flag value`, `Bearer <token>`). For anything unusual, use a leading space or `RECALL_IGNORE`.
+
+> After upgrading Recall, re-run `recall install` to refresh the installed hook.
 
 ---
 
